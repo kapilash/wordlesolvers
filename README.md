@@ -1,2 +1,2 @@
 # wordlesolvers
-random experiments with wordle
+random experiments with the excellent [wordle](https://www.powerlanguage.co.uk/wordle/)
