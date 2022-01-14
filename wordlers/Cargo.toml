@@ -2,11 +2,13 @@
 name = "wordlers"
 version = "0.1.0"
 edition = "2021"
+license-file = "../LICENSE"
+exclude = ["*.txt", "*.bak"]
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bit-vec = "0.6.3"
 reqwest = { version = "0.11", features = ["blocking", "json"] }
 colored = "2"
 rand = "0.8.4"

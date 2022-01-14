@@ -8,7 +8,10 @@ use std::path::Path;
 use colored::*;
 use rand::prelude::*;
 
+/// a set for alphabetical characters. Considering the nature of the problem, we can use an
+/// unsigned integer to represent the set.
 struct CharSet{
+    /// the set of characters
     chars: u32,
 }
 
@@ -54,12 +57,18 @@ impl fmt::Display for CharSet {
     }
 }
 
+/// the word consists of five characters.
 #[derive(Debug, Clone, Copy)]
 struct Word {
+    /// the first character
     c0 : char,
+    /// the second character
     c1 : char,
+    /// the third character
     c2 : char,
+    /// the fourth character
     c3 : char,
+    /// the fifth character
     c4 : char
 }
 
@@ -109,12 +118,19 @@ impl Word {
     }
 }
 
+/// The constraints on the words. Each constraint is represented as a set of characters.
 struct WordleState {
+    /// the characters allowed in the first letter.
     c0 : CharSet,
+    /// the characters allowed in the second letter.
     c1 : CharSet,
+    /// the characters allowed in the third letter.
     c2 : CharSet,
+    /// the characters allowed in the fourth letter.
     c3 : CharSet,
+    /// the characters allowed in the fifth letter.
     c4 : CharSet,
+    /// the characters seen so far. .
     seen: CharSet
 }
 
@@ -139,6 +155,8 @@ impl WordleState {
             self.c4.contains(word.c4)
     }
 
+    /// gets called when we encounter an N word. That is the letter in the guess is neither green
+    /// nor yellow.
     fn remove_letter(&mut self, c: char) {
         self.c0.remove(c);
         self.c1.remove(c);
@@ -148,6 +166,8 @@ impl WordleState {
     }
 
 
+    /// once we got a new word and the response from wordle (in terms of N/Y/G for each letter of
+    /// the guess), update the state.
     fn update(&mut self, word: &Word, response: &str) {
         if response.chars().nth(0).unwrap() != 'N' {
             self.seen.add(word.c0);
@@ -213,6 +233,7 @@ impl WordleState {
     }
 }
 
+/// a pair of character and the number of times it appears in the word list.
 #[derive(Debug)]
 struct CharCount {
     c : u32,
@@ -220,11 +241,13 @@ struct CharCount {
 }
 
 
+/// the allowed collection of words.
 struct WordCollection {
     words: Vec<Word>,
 }
 
 impl WordCollection {
+    /// reads five lettered words from the file.
     fn new(filename: &str) -> WordCollection {
         let mut words = Vec::new();
         let path = Path::new(filename);
@@ -248,12 +271,15 @@ impl WordCollection {
         }
     }
 
+    /// returns a random word from the collection.
+    /// Useful for playing wordle/cows and bulls.
     fn get_random_word(&self) -> String {
         let mut rng = thread_rng();
         let index = rng.gen_range(0..self.words.len());
         self.words[index].to_string()
     }
 
+    /// returns true if the given word is in the collection.
     fn contains_word(&self, word: &str) -> bool {
         for w in &self.words {
             if w.to_string() == word.to_lowercase() {
@@ -269,6 +295,7 @@ impl WordCollection {
         }
     }
 
+    /// returns the best guess for the next word for wordle.
     fn get_best_word(&self) -> Word {
         if self.words.len() == 0 {
             println!("{}", "I give up".red());
@@ -305,6 +332,8 @@ impl WordCollection {
         best_word
     }
 
+    /// returns a new collection with only those words that satisfy the current state.
+    /// This is called after the state has been updated by the wordle response.
     fn filter(&self, state: &WordleState) -> WordCollection {
         let mut words = Vec::new();
         for word in &self.words {
@@ -317,6 +346,7 @@ impl WordCollection {
 
 }
 
+/// downloads sgb word file from Knuth's site.
 fn download_file_if_needed(url: &str, filename: &str) {
     let path = Path::new(filename);
     if !path.exists() {
@@ -326,6 +356,7 @@ fn download_file_if_needed(url: &str, filename: &str) {
     }
 }
 
+/// tries to solve the wordle.
 fn solve_wordle() {
     let mut collection = WordCollection::new("sgb-words.txt");
     let mut word = collection.get_best_word();
@@ -345,6 +376,7 @@ fn solve_wordle() {
     }
 }
 
+/// helper function to display the response for a guess in Cows and Bulls.
 fn compare_print_cb(given: &str, response: &str) {
     let mut cows = 0;
     let mut bulls = 0;
@@ -372,6 +404,7 @@ fn compare_print_cb(given: &str, response: &str) {
     println!("{} bulls and {} cows", bulls, cows);
 }
 
+/// helper function to display the response for a guess in Wordle.
 fn compare_print_wordle(given: &str, response: &str) {
     let mut text = String::new();
     for i in 0..5 {
@@ -401,6 +434,7 @@ fn compare_print_wordle(given: &str, response: &str) {
     println!("{}", text.bold());
 }
 
+/// to play wordle.
 fn play_wordle() {
     println!("{}", "This is a cheap knock off to the excellent https://powerlanguage.co.uk/wordle/ ".green().bold());
     println!("{}", "Consider playing there.");
@@ -438,6 +472,7 @@ fn play_wordle() {
     }
 }
 
+/// to play Cows and Bulls.
 fn play_cows_and_bulls() {
     println!("{}", "Welcome to cows and bulls! ".green().bold());
     println!();
