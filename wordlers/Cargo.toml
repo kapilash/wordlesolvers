@@ -5,6 +5,7 @@ edition = "2021"
 license-file = "../LICENSE"
 exclude = ["*.txt", "*.bak"]
 readme = "README.md"
+description = "A program to solve/play word games"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
