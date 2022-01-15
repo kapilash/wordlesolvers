@@ -118,20 +118,26 @@ impl Word {
     }
 }
 
+impl fmt::Display for Word {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.to_string())
+    }
+}
+
 /// The constraints on the words. Each constraint is represented as a set of characters.
 struct WordleState {
-    /// the characters allowed in the first letter.
+    /// the characters allowed in the first position.
     c0 : CharSet,
-    /// the characters allowed in the second letter.
+    /// the characters allowed in the second position.
     c1 : CharSet,
-    /// the characters allowed in the third letter.
+    /// the characters allowed in the third position.
     c2 : CharSet,
-    /// the characters allowed in the fourth letter.
+    /// the characters allowed in the fourth position.
     c3 : CharSet,
-    /// the characters allowed in the fifth letter.
+    /// the characters allowed in the fifth position.
     c4 : CharSet,
-    /// the characters seen so far. .
-    seen: CharSet
+    /// the characters known to be in the target word.
+    in_target: CharSet
 }
 
 impl WordleState {
@@ -142,12 +148,12 @@ impl WordleState {
             c2: CharSet::new_full(),
             c3: CharSet::new_full(),
             c4: CharSet::new_full(),
-            seen: CharSet::new()
+            in_target: CharSet::new()
         }
     }
 
     fn is_allowed(&self, word: &Word) -> bool {
-        self.seen.is_subset_of(&word.to_char_set()) &&
+        self.in_target.is_subset_of(&word.to_char_set()) &&
             self.c0.contains(word.c0) && 
             self.c1.contains(word.c1) && 
             self.c2.contains(word.c2) &&
@@ -155,7 +161,7 @@ impl WordleState {
             self.c4.contains(word.c4)
     }
 
-    /// gets called when we encounter an N word. That is the letter in the guess is neither green
+    /// gets called when we encounter an N letter. That is, the letter in the guess that is neither green
     /// nor yellow.
     fn remove_letter(&mut self, c: char) {
         self.c0.remove(c);
@@ -170,7 +176,7 @@ impl WordleState {
     /// the guess), update the state.
     fn update(&mut self, word: &Word, response: &str) {
         if response.chars().nth(0).unwrap() != 'N' {
-            self.seen.add(word.c0);
+            self.in_target.add(word.c0);
             if response.chars().nth(0).unwrap() == 'Y' {
                 self.c0.remove(word.c0);
             }
@@ -182,7 +188,7 @@ impl WordleState {
             self.remove_letter(word.c0);
         }
         if response.chars().nth(1).unwrap() != 'N' {
-            self.seen.add(word.c1);
+            self.in_target.add(word.c1);
             if response.chars().nth(1).unwrap() == 'Y' {
                 self.c1.remove(word.c1);
             }
@@ -194,7 +200,7 @@ impl WordleState {
             self.remove_letter(word.c1);
         }
         if response.chars().nth(2).unwrap() != 'N' {
-            self.seen.add(word.c2);
+            self.in_target.add(word.c2);
             if response.chars().nth(2).unwrap() == 'Y' {
                 self.c2.remove(word.c2);
             }
@@ -206,7 +212,7 @@ impl WordleState {
             self.remove_letter(word.c2);
         }
         if response.chars().nth(3).unwrap() != 'N' {
-            self.seen.add(word.c3);
+            self.in_target.add(word.c3);
             if response.chars().nth(3).unwrap() == 'Y' {
                 self.c3.remove(word.c3);
             }
@@ -218,7 +224,7 @@ impl WordleState {
             self.remove_letter(word.c3);
         }
         if response.chars().nth(4).unwrap() != 'N' {
-            self.seen.add(word.c4);
+            self.in_target.add(word.c4);
             if response.chars().nth(4).unwrap() == 'Y' {
                 self.c4.remove(word.c4);
             }
