@@ -43,6 +43,10 @@ impl CharSet {
     fn remove_others(&mut self, c: char) {
         self.chars = 1 << (c as u32 - 'a' as u32);
     }
+
+    fn cardinality(&self) -> usize {
+        self.chars.count_ones() as usize
+    }
 }
 
 impl fmt::Display for CharSet {
