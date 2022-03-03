@@ -44,9 +44,9 @@ impl CharSet {
         self.chars = 1 << (c as u32 - 'a' as u32);
     }
 
-    /*fn cardinality(&self) -> usize {
+    fn cardinality(&self) -> usize {
         self.chars.count_ones() as usize
-    }*/
+    }
 }
 
 impl fmt::Display for CharSet {
@@ -119,6 +119,11 @@ impl Word {
         char_set.add(self.c3);
         char_set.add(self.c4);
         char_set
+    }
+
+    fn has_any_char_in(&self, other: &CharSet) -> bool {
+        other.contains(self.c0) || other.contains(self.c1) || other.contains(self.c2) ||
+        other.contains(self.c3) || other.contains(self.c4)
     }
 }
 
@@ -373,6 +378,17 @@ impl WordCollection {
         self.words.retain(|x| x != word);
     }
 
+    fn filter_by_ns(&self, set: &CharSet) -> WordCollection {
+        let mut words = Vec::new();
+        for word in &self.words {
+            if !word.has_any_char_in(set) {
+                words.push(word.clone());
+            }
+        }
+        WordCollection::from_words(words)
+    }
+
+
 }
 
 /// downloads sgb word file from Knuth's site.
@@ -408,17 +424,45 @@ fn solve_wordle() {
 fn solve_wordle_soft_mode() {
     let mut collection = WordCollection::new("sgb-words.txt");
     let mut word = collection.get_best_word();
+    let mut used = CharSet::new();
+    let mut known_chars = 0;
+    let mut turn = 0;
     while collection.words.len() > 0 {
         println!("{}", word.to_string().to_uppercase().green().bold());
         let mut response = String::new();
         io::stdin().read_line(&mut response).unwrap();
         let response = response.trim().to_uppercase();
-        collection = collection.only_matching(&word.to_string(), &response);
-        word = collection.get_best_word();
         if response == "GGGGG" {
             println!("thank you!");
             break;
         }
+        turn+=1;
+        used.add(word.c0);
+        used.add(word.c1);
+        used.add(word.c2);
+        used.add(word.c3);
+        used.add(word.c4);
+        for c in response.chars() {
+            if c != 'N' {
+                known_chars += 1;
+            }
+        }
+        if known_chars < 3 && turn < 3 {
+            let new_collection = collection.filter_by_ns(&used);
+            let new_word = new_collection.get_best_word();
+            println!("{}", new_word.to_string().to_uppercase().green().bold());
+            let mut new_response = String::new();
+            io::stdin().read_line(&mut new_response).unwrap();
+            let new_response = new_response.trim().to_uppercase();
+            if new_response == "GGGGG" {
+                println!("thank you!");
+                break;
+            }
+            turn += 1;
+            collection = collection.only_matching(&new_word.to_string(), &new_response);
+        }
+        collection = collection.only_matching(&word.to_string(), &response);
+        word = collection.get_best_word();
     }
 }
 
