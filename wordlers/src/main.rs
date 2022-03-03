@@ -44,9 +44,9 @@ impl CharSet {
         self.chars = 1 << (c as u32 - 'a' as u32);
     }
 
-    fn cardinality(&self) -> usize {
+    /*fn cardinality(&self) -> usize {
         self.chars.count_ones() as usize
-    }
+    }*/
 }
 
 impl fmt::Display for CharSet {
@@ -62,7 +62,7 @@ impl fmt::Display for CharSet {
 }
 
 /// the word consists of five characters.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Word {
     /// the first character
     c0 : char,
@@ -241,6 +241,10 @@ impl WordleState {
         }
 
     }
+
+    fn is_usable(&self, c: char) -> bool {
+        self.c0.contains(c) || self.c1.contains(c) || self.c2.contains(c) || self.c3.contains(c) || self.c4.contains(c)
+    }
 }
 
 /// a pair of character and the number of times it appears in the word list.
@@ -354,6 +358,21 @@ impl WordCollection {
         WordCollection::from_words(words)
     }
 
+    fn only_matching(&self, curr: &str, response: &str) -> WordCollection {
+        let mut words = Vec::new();
+        for word in &self.words {
+            let w = word.to_string();
+            if wordle_compare(&w[0..], curr) == response {
+                words.push(word.clone());
+            }
+        }
+        WordCollection::from_words(words)
+    }
+
+    fn remove(&mut self, word: &Word) {
+        self.words.retain(|x| x != word);
+    }
+
 }
 
 /// downloads sgb word file from Knuth's site.
@@ -385,7 +404,157 @@ fn solve_wordle() {
         }
     }
 }
+/// tries to solve the wordle in soft-mode.
+fn solve_wordle_soft_mode() {
+    let mut collection = WordCollection::new("sgb-words.txt");
+    let mut word = collection.get_best_word();
+    while collection.words.len() > 0 {
+        println!("{}", word.to_string().to_uppercase().green().bold());
+        let mut response = String::new();
+        io::stdin().read_line(&mut response).unwrap();
+        let response = response.trim().to_uppercase();
+        collection = collection.only_matching(&word.to_string(), &response);
+        word = collection.get_best_word();
+        if response == "GGGGG" {
+            println!("thank you!");
+            break;
+        }
+    }
+}
 
+fn read_response(words: &WordCollection, state: &WordleState) -> String {
+    loop {
+        let mut response = String::new();
+        io::stdin().read_line(&mut response).unwrap();
+        let x = response.trim().to_uppercase();
+        if x.len() == 5 {
+            if words.words.len() < 20 {
+                for word in &words.words {
+                    print!("{} ", word.to_string());
+                }
+                println!("");
+            }
+            return x;
+        }
+        else if x == "?C" {
+            println!("{} words", words.words.len());
+        }
+        else if x == "?L" {
+            for word in &words.words {
+                print!("{} ", word.to_string());
+            }
+            println!("");
+        }
+        else if x == "?H" {
+            let alphabet = "abcsdefghijklmnopqrstuvwxyz";
+            for c in alphabet.chars() {
+                if state.is_usable(c) {
+                    print!("{} ", c);
+                }
+            }
+            println!("");
+        }
+        else {
+            println!("{}", "please enter five letters".red());
+        }
+    }
+}
+
+fn solve_worlde_with(first_word: &str) {
+    let mut collection = WordCollection::new("sgb-words.txt");
+    let mut word = Word::new(first_word);
+    let mut state = WordleState::new();
+    while collection.words.len() > 0 {
+        println!("{}", word.to_string().to_uppercase().green().bold());
+        let response = read_response(&collection, &state); //response.trim().to_uppercase();
+        state.update(&word, &response);
+        collection = collection.filter(&state);
+        word = collection.get_best_word();
+        if response == "GGGGG" {
+            println!("thank you!");
+            break;
+        }
+    }
+}
+
+/*
+fn next_pos_and_update(given: &str, c: char, visited:&mut Vec<bool>) -> (usize, bool) {
+    let mut pos = given.len();
+    let mut found = false;
+    for i in 0..given.len() {
+        if visited[i] {
+            continue;
+        }
+        if given.chars().nth(i).unwrap() == c {
+            pos = i;
+            found = true;
+            break;
+        }
+    }
+    if found {
+        visited[pos] = true;
+    }
+    (pos, found)
+}*/
+
+fn not_found_in(given: &str, c: char) -> bool {
+    for i in 0..given.len() {
+        if given.chars().nth(i).unwrap() == c {
+            return false;
+        }
+    }
+    true
+}
+
+fn wordle_compare(given: &str, word: &str) -> String {
+    let mut chars = Vec::new();
+    let mut visited = Vec::new();
+    for _ in word.chars() {
+        chars.push('.');
+        visited.push(false);
+    }
+    for i in 0..word.len() {
+        let c = word.chars().nth(i).unwrap();
+        if not_found_in(given, c) {
+            chars[i] = 'N';
+        }
+    }
+    for i in 0..word.len() {
+        let c = word.chars().nth(i).unwrap();
+        if given.chars().nth(i).unwrap() ==  c {
+            chars[i] = 'G';
+            visited[i] = true;
+        }
+    }
+    for i in 0..word.len() {
+        if chars[i] == '.' {
+            let mut found = false;
+            let x = word.chars().nth(i).unwrap();
+            for j in 0..word.len() {
+                if  i == j || visited[j] {
+                    continue;
+                }
+                let c = given.chars().nth(j).unwrap();
+                if c == x  {
+                    found = true;
+                    visited[j] = true;
+                    break;
+                }
+            }
+            if found {
+                chars[i] = 'Y';
+            }
+            else {
+                chars[i] = 'N';
+            }
+        }
+    }
+    let mut response = String::new();
+    for c in chars {
+        response.push(c);
+    }
+    response
+}
 /// helper function to display the response for a guess in Cows and Bulls.
 fn compare_print_cb(given: &str, response: &str) {
     let mut cows = 0;
@@ -416,31 +585,7 @@ fn compare_print_cb(given: &str, response: &str) {
 
 /// helper function to display the response for a guess in Wordle.
 fn compare_print_wordle(given: &str, response: &str) {
-    let mut text = String::new();
-    for i in 0..5 {
-        let r = response.chars().nth(i).unwrap();
-        if r == given.chars().nth(i).unwrap() {
-            text.push('G');
-        }
-        else {
-            let mut found = false;
-            for j in 0..5 {
-                if i == j {
-                    continue;
-                }
-                if given.chars().nth(j).unwrap() == r {
-                    found = true;
-                    break;
-                }
-            }
-            if found {
-                text.push('Y');
-            }
-            else {
-                text.push('N');
-            }
-        }
-    }
+    let text = wordle_compare(given, response);
     println!("{}", text.bold());
 }
 
@@ -465,7 +610,7 @@ fn play_wordle() {
             continue;
         }
         if !collection.contains_word(&response) {
-            println!("{}", "Chor! there ain't no such word.".red());
+            println!("{}", "Nope! there ain't no such word.".red());
             continue;
         }
         if response == word {
@@ -479,6 +624,28 @@ fn play_wordle() {
     }
     if count > 5 {
         println!("{} {}", "Loser!".red(), word.to_string().blue());
+    }
+}
+
+fn find_shape(final_word: &str, shape: Vec<String>) {
+    let mut collection = WordCollection::new("sgb-words.txt");
+    
+    for target in shape {
+        let mut maybe_word : Option<Word> = None;
+        for word in &collection.words {
+            if wordle_compare( final_word, &word.to_string()) == target {
+                println!("{} {}", target, word.to_string());
+                maybe_word = Some(word.clone());
+                break;
+            }
+        }
+        if maybe_word.is_none() {
+            println!("no word matching {}", target);
+        }
+        else {
+            let word = maybe_word.unwrap();
+            collection.remove(&word);
+        }
     }
 }
 
@@ -528,10 +695,35 @@ fn main() {
     else if args[1] == "wordle" {
         play_wordle();
     }
+    else if args[1] == "soft" {
+        solve_wordle_soft_mode(); 
+    }
+    else if args[1] == "cowsandbulls" {
+        play_cows_and_bulls();
+    }
     else if args[1] == "cb" {
         play_cows_and_bulls();
     }
+    else if args[1].len() == 5 {
+        solve_worlde_with(&args[1]);
+    }
+    else if args.len() > 3 {
+        if args[1] == "shapes" {
+            find_shape(&args[2], args[3..].to_vec());
+        }
+    }
     else {
-        println!("{}", "I don't know what you mean.".red());
+        println!("{}", "please enter five letters".red());
     }
 }
+
+#[test]
+fn test_wordle_compare() {
+    assert_eq!(wordle_compare("hello", "henlo"), "GGNGG");
+    assert_eq!(wordle_compare("hello", "hello"), "GGGGG");
+    assert_eq!(wordle_compare("hello", "olleh"), "YYGYY");
+    assert_eq!(wordle_compare("hello", "ollen"), "YYGYN");
+    assert_eq!(wordle_compare("hello", "lllen"), "YNGYN");
+    assert_eq!(wordle_compare("hello", "lllle"), "NNGGY");
+}
+
