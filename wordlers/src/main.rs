@@ -44,9 +44,9 @@ impl CharSet {
         self.chars = 1 << (c as u32 - 'a' as u32);
     }
 
-    fn cardinality(&self) -> usize {
+    /*fn cardinality(&self) -> usize {
         self.chars.count_ones() as usize
-    }
+    }*/
 }
 
 impl fmt::Display for CharSet {
@@ -119,11 +119,6 @@ impl Word {
         char_set.add(self.c3);
         char_set.add(self.c4);
         char_set
-    }
-
-    fn has_any_char_in(&self, other: &CharSet) -> bool {
-        other.contains(self.c0) || other.contains(self.c1) || other.contains(self.c2) ||
-        other.contains(self.c3) || other.contains(self.c4)
     }
 }
 
@@ -363,32 +358,9 @@ impl WordCollection {
         WordCollection::from_words(words)
     }
 
-    fn only_matching(&self, curr: &str, response: &str) -> WordCollection {
-        let mut words = Vec::new();
-        for word in &self.words {
-            let w = word.to_string();
-            if wordle_compare(&w[0..], curr) == response {
-                words.push(word.clone());
-            }
-        }
-        WordCollection::from_words(words)
-    }
-
     fn remove(&mut self, word: &Word) {
         self.words.retain(|x| x != word);
     }
-
-    fn filter_by_ns(&self, set: &CharSet) -> WordCollection {
-        let mut words = Vec::new();
-        for word in &self.words {
-            if !word.has_any_char_in(set) {
-                words.push(word.clone());
-            }
-        }
-        WordCollection::from_words(words)
-    }
-
-
 }
 
 /// downloads sgb word file from Knuth's site.
@@ -422,46 +394,71 @@ fn solve_wordle() {
 }
 /// tries to solve the wordle in soft-mode.
 fn solve_wordle_soft_mode() {
+    let adieu = Word::new("adieu");
+    let pylon = Word::new("pylon");
+    let crows = Word::new("crows");
+    let fight = Word::new("fight");
     let mut collection = WordCollection::new("sgb-words.txt");
+    let mut state = WordleState::new();
+    println!("{}", adieu.to_string().to_uppercase().green().bold());
+    let response = read_response(&collection, &state);
+    state.update(&adieu, &response);
+    if response == "GGGGG" {
+        println!("thank you!");
+        return;
+    }
+    let mut unknown_count = 0;
+    for c in response.chars() {
+        if c == 'N' {
+            unknown_count += 1;
+        }
+    }
+    collection = collection.filter(&state);
+    if unknown_count > 1 {
+        println!("{}", pylon.to_string().to_uppercase().green().bold());
+        let response = read_response(&collection, &state);
+        state.update(&pylon, &response);
+        if response == "GGGGG" {
+            println!("thank you!");
+            return;
+        }
+        for c in response.chars() {
+            if c == 'N' {
+                unknown_count += 1;
+            }
+        }
+        collection = collection.filter(&state);
+    }
+    if unknown_count > 1 {
+        println!("{}", crows.to_string().to_uppercase().green().bold());
+        let response = read_response(&collection, &state);
+        state.update(&crows, &response);
+        if response == "GGGGG" {
+            println!("thank you!");
+            return;
+        }
+        collection = collection.filter(&state);
+    }
+    if unknown_count > 1 {
+        println!("{}", fight.to_string().to_uppercase().green().bold());
+        let response = read_response(&collection, &state);
+        state.update(&fight, &response);
+        if response == "GGGGG" {
+            println!("thank you!");
+            return;
+        }
+        collection = collection.filter(&state);
+    }
     let mut word = collection.get_best_word();
-    let mut used = CharSet::new();
-    let mut known_chars = 0;
-    let mut turn = 0;
     while collection.words.len() > 0 {
         println!("{}", word.to_string().to_uppercase().green().bold());
-        let mut response = String::new();
-        io::stdin().read_line(&mut response).unwrap();
-        let response = response.trim().to_uppercase();
+        let response = read_response(&collection, &state);
         if response == "GGGGG" {
             println!("thank you!");
             break;
         }
-        turn+=1;
-        used.add(word.c0);
-        used.add(word.c1);
-        used.add(word.c2);
-        used.add(word.c3);
-        used.add(word.c4);
-        for c in response.chars() {
-            if c != 'N' {
-                known_chars += 1;
-            }
-        }
-        if known_chars < 3 && turn < 3 {
-            let new_collection = collection.filter_by_ns(&used);
-            let new_word = new_collection.get_best_word();
-            println!("{}", new_word.to_string().to_uppercase().green().bold());
-            let mut new_response = String::new();
-            io::stdin().read_line(&mut new_response).unwrap();
-            let new_response = new_response.trim().to_uppercase();
-            if new_response == "GGGGG" {
-                println!("thank you!");
-                break;
-            }
-            turn += 1;
-            collection = collection.only_matching(&new_word.to_string(), &new_response);
-        }
-        collection = collection.only_matching(&word.to_string(), &response);
+        state.update(&word, &response);
+        collection = collection.filter(&state);
         word = collection.get_best_word();
     }
 }
@@ -472,12 +469,6 @@ fn read_response(words: &WordCollection, state: &WordleState) -> String {
         io::stdin().read_line(&mut response).unwrap();
         let x = response.trim().to_uppercase();
         if x.len() == 5 {
-            if words.words.len() < 20 {
-                for word in &words.words {
-                    print!("{} ", word.to_string());
-                }
-                println!("");
-            }
             return x;
         }
         else if x == "?C" {
