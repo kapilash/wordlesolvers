@@ -407,14 +407,14 @@ fn solve_wordle_soft_mode() {
         println!("thank you!");
         return;
     }
-    let mut unknown_count = 0;
+    let mut known_count = 0;
     for c in response.chars() {
-        if c == 'N' {
-            unknown_count += 1;
+        if c != 'N' {
+            known_count += 1;
         }
     }
     collection = collection.filter(&state);
-    if unknown_count > 1 {
+    if known_count < 4 {
         println!("{}", pylon.to_string().to_uppercase().green().bold());
         let response = read_response(&collection, &state);
         state.update(&pylon, &response);
@@ -423,13 +423,13 @@ fn solve_wordle_soft_mode() {
             return;
         }
         for c in response.chars() {
-            if c == 'N' {
-                unknown_count += 1;
+            if c != 'N' {
+                known_count += 1;
             }
         }
         collection = collection.filter(&state);
     }
-    if unknown_count > 1 {
+    if known_count < 4 {
         println!("{}", crows.to_string().to_uppercase().green().bold());
         let response = read_response(&collection, &state);
         state.update(&crows, &response);
@@ -437,9 +437,14 @@ fn solve_wordle_soft_mode() {
             println!("thank you!");
             return;
         }
+        for c in response.chars() {
+            if c != 'N' {
+                known_count += 1;
+            }
+        }
         collection = collection.filter(&state);
     }
-    if unknown_count > 1 {
+    if known_count < 4 {
         println!("{}", fight.to_string().to_uppercase().green().bold());
         let response = read_response(&collection, &state);
         state.update(&fight, &response);
