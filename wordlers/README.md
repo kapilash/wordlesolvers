@@ -32,12 +32,12 @@ Other Command Line arguments
 * `soft`. By passing soft as argument, it will solve wordle in non-hard mode. It uses upto four words to figure out as many letters as possible and use the remaining chances to build up on it. This is akin to [Norvig's solution]() although, the choice of words is different.
 
 * `shapes target-word response*` By giving a target word and a bunch of options, it will try and provide a sequence of words (without repition) that will satisfy the pattern. 
-   +  For example, running with `brine YNNNY YNNNY NYYYN YNNNY YNNNY` would give five distinct words which result in a H shape (when the result is known to be BRINE).
+   +  For example, running with `shapes brine YNNNY YNNNY NYYYN YNNNY YNNNY` would give five distinct words which result in a H shape (when the result is known to be BRINE).
   
    ![image](https://user-images.githubusercontent.com/113322/156870121-cadfef10-95e1-4c0b-bf8a-cfd0f9fa2813.png)
 
 
-   + running with `brine YNNNY NYNYN NNYNN NYNYN YNNNY` would result in five distinct words that would result in an X shape (when the result is known to be BRINE).
+   + running with `shapes brine YNNNY NYNYN NNYNN NYNYN YNNNY` would result in five distinct words that would result in an X shape (when the result is known to be BRINE).
    
    ![image](https://user-images.githubusercontent.com/113322/156870095-c73f629b-7cd6-4508-8af0-ae91266ead0a.png)
 
