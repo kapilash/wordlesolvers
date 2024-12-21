@@ -70,3 +70,12 @@
             (set! eight-words
                   (for/list ([l (in-lines)]) l))))
       (filter (lambda (x) (is-word-valid? puzzle x)) eight-words))))
+
+(define (check-word-list str file-name)
+  (let ([puzzle (string->spelling-bee str)])
+    (with-input-from-file file-name
+      (lambda ()
+        (for ([l (in-lines)])
+          (if (is-word-valid? puzzle (string-upcase l))
+              (println l)
+              '()))))))
